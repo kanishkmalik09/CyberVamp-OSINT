@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>HadesIntel – Phone OSINT</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: #0a0e17;
+            color: #e8e8f0;
+            min-height: 100vh;
+            padding: 24px;
+            background-image: radial-gradient(ellipse at 10% 20%, rgba(255,69,0,0.04) 0%, transparent 60%),
+                              radial-gradient(ellipse at 90% 80%, rgba(255,106,0,0.04) 0%, transparent 60%);
+            background-attachment: fixed;
+        }
+        .container { max-width: 820px; margin: 0 auto; }
+
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(255,69,0,0.15);
+            margin-bottom: 32px;
+            position: relative;
+        }
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100px;
+            height: 2px;
+            background: linear-gradient(90deg, #ff4500, #ff6a00, transparent);
+        }
+        .logo h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #ff4500, #ff6a00);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo h1 i { -webkit-text-fill-color: initial; color: #ff4500; }
+        .logo span { font-size: 0.8rem; color: #8888aa; display: block; margin-top: 2px; }
+        .status-badge {
+            background: rgba(255,69,0,0.08);
+            border: 1px solid rgba(255,69,0,0.2);
+            padding: 6px 18px;
+            border-radius: 40px;
+            font-size: 0.75rem;
+            color: #ff6a00;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-badge .dot {
+            width: 8px; height: 8px;
+            background: #00ff64;
+            border-radius: 50%;
+            box-shadow: 0 0 12px rgba(0,255,100,0.3);
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.85); }
+        }
+
+        .main-section {
+            margin-bottom: 12px;
+            border-radius: 14px;
+            border: 1px solid rgba(255,255,255,0.04);
+            overflow: hidden;
+            background: rgba(16,20,44,0.5);
+            backdrop-filter: blur(8px);
+            transition: border 0.3s, box-shadow 0.3s;
+        }
+        .main-section:hover { border-color: rgba(255,69,0,0.12); }
+        .main-section.active {
+            border-color: rgba(255,69,0,0.25);
+            box-shadow: 0 0 30px rgba(255,69,0,0.03);
+        }
+
+        .section-header {
+            padding: 16px 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            user-select: none;
+            transition: background 0.2s;
+            background: rgba(16,20,44,0.3);
+        }
+        .section-header:hover { background: rgba(255,69,0,0.03); }
+        .section-header .title-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-weight: 600;
+            font-size: 1rem;
+            color: #c8d8ee;
+        }
+        .section-header .title-group i { color: #ff4500; width: 24px; font-size: 1.1rem; }
+        .section-header .toggle-icon {
+            color: #556688;
+            transition: transform 0.3s ease;
+            font-size: 0.85rem;
+        }
+        .main-section.active .toggle-icon { transform: rotate(180deg); }
+
+        .section-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), padding 0.3s ease;
+            padding: 0 22px;
+            background: rgba(0,0,0,0.12);
+        }
+        .main-section.active .section-body {
+            max-height: 200px;
+            padding: 14px 22px 22px 22px;
+        }
+
+        .input-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+        }
+        .input-row input {
+            flex: 1 1 220px;
+            padding: 10px 16px;
+            background: rgba(0,0,0,0.35);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 10px;
+            color: #f0f4ff;
+            font-size: 0.95rem;
+            transition: border 0.3s, box-shadow 0.3s;
+            font-family: inherit;
+        }
+        .input-row input:focus {
+            outline: none;
+            border-color: #ff4500;
+            box-shadow: 0 0 0 3px rgba(255,69,0,0.06);
+        }
+        .input-row input::placeholder { color: #556688; }
+
+        .btn-search {
+            background: linear-gradient(135deg, #ff4500, #e63e00);
+            border: none;
+            padding: 10px 28px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            box-shadow: 0 4px 15px rgba(255,69,0,0.2);
+        }
+        .btn-search:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255,69,0,0.3);
+        }
+        .btn-search:active { transform: translateY(0); }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 30px;
+        }
+        .loading.active { display: block; }
+        .spinner {
+            width: 36px; height: 36px;
+            border: 3px solid rgba(255,69,0,0.08);
+            border-top-color: #ff4500;
+            border-radius: 50%;
+            animation: spin 0.9s cubic-bezier(0.6,0,0.4,1) infinite;
+            margin: 0 auto 12px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading p { color: #8899bb; font-size: 0.9rem; }
+
+        .results-section {
+            display: none;
+            margin-top: 28px;
+            animation: fadeInUp 0.4s ease-out;
+        }
+        .results-section.active { display: block; }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-card {
+            background: rgba(12,16,34,0.7);
+            border-left: 4px solid #ff4500;
+            border-radius: 10px;
+            padding: 14px 20px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255,255,255,0.03);
+            border-left-width: 4px;
+            transition: transform 0.2s;
+        }
+        .result-card:hover { transform: translateX(4px); }
+        .result-card h4 {
+            color: #ff6a00;
+            font-weight: 600;
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .result-card h4 i { color: #ff4500; width: 22px; }
+        .result-card .data-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 24px;
+            font-size: 0.9rem;
+            color: #c8d8ee;
+        }
+        .result-card .data-row strong {
+            color: #e8f0ff;
+            font-weight: 500;
+            min-width: 90px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 12px;
+            border-radius: 40px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-success { background: rgba(0,255,100,0.12); color: #00ff64; }
+        .badge-danger { background: rgba(255,0,50,0.12); color: #ff0032; }
+        .badge-warning { background: rgba(255,200,0,0.12); color: #ffc800; }
+
+        .pdf-bar {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.04);
+        }
+        .btn-pdf {
+            background: rgba(255,106,0,0.04);
+            border: 1px solid rgba(255,106,0,0.15);
+            color: #ff6a00;
+            padding: 8px 24px;
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-pdf:hover {
+            background: rgba(255,106,0,0.08);
+            border-color: rgba(255,106,0,0.3);
+        }
+
+        @media (max-width: 640px) {
+            body { padding: 16px; }
+            .header { flex-direction: column; align-items: flex-start; }
+            .logo h1 { font-size: 1.6rem; }
+            .section-header { padding: 14px 16px; }
+            .section-header .title-group { font-size: 0.9rem; }
+            .input-row { flex-direction: column; align-items: stretch; }
+            .btn-search { justify-content: center; }
+            .main-section.active .section-body { max-height: 250px; }
+        }
+        @media (max-width: 400px) {
+            .logo h1 { font-size: 1.3rem; }
+            .section-header { padding: 12px 14px; }
+            .section-body { padding: 0 14px; }
+            .main-section.active .section-body { padding: 10px 14px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- HEADER -->
+    <header class="header">
+        <div class="logo">
+            <h1><i class="fas fa-skull"></i>HadesIntel</h1>
+            <span>Phone OSINT</span>
+        </div>
+        <div class="status-badge">
+            <span class="dot"></span> System Online
+        </div>
+    </header>
+
+    <!-- PHONE OSINT SECTION -->
+    <div class="main-section" data-service="phone">
+        <div class="section-header">
+            <div class="title-group">
+                <i class="fas fa-phone-alt"></i>
+                <span>Phone Validation</span>
+            </div>
+            <i class="fas fa-chevron-down toggle-icon"></i>
+        </div>
+        <div class="section-body">
+            <div class="input-row">
+                <input type="text" class="service-input" placeholder="Enter phone number" />
+                <button class="btn-search"><i class="fas fa-search"></i> Search</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LOADING -->
+    <div class="loading" id="loadingIndicator">
+        <div class="spinner"></div>
+        <p>Validating phone number...</p>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="results-section" id="resultsSection">
+        <div style="font-size:1.2rem; font-weight:600; margin-bottom:14px; display:flex; align-items:center; gap:10px; color:#c8d8ee;">
+            <i class="fas fa-chart-bar" style="color:#ff4500;"></i> Results
+        </div>
+        <div id="resultsContainer"></div>
+        <div class="pdf-bar">
+            <button class="btn-pdf" id="generatePdfBtn">
+                <i class="fas fa-file-pdf"></i> Generate PDF Report
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    (function() {
+        'use strict';
+
+        // ACCORDION TOGGLE
+        const sections = document.querySelectorAll('.main-section');
+        sections.forEach(section => {
+            const header = section.querySelector('.section-header');
+            header.addEventListener('click', function(e) {
+                if (e.target.closest('.btn-search')) return;
+                sections.forEach(sec => {
+                    if (sec !== section) sec.classList.remove('active');
+                });
+                section.classList.toggle('active');
+            });
+        });
+
+        // SEARCH HANDLER
+        const searchButtons = document.querySelectorAll('.btn-search');
+        const loading = document.getElementById('loadingIndicator');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultsContainer = document.getElementById('resultsContainer');
+
+        searchButtons.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+
+                const section = this.closest('.main-section');
+                const input = section.querySelector('.service-input');
+                const value = input.value.trim();
+
+                if (!value) {
+                    alert('Please enter a phone number');
+                    return;
+                }
+
+                loading.classList.add('active');
+                resultsSection.classList.remove('active');
+
+                fetch('/api/osint', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'phone', value: value })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Server responded with status ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    loading.classList.remove('active');
+                    resultsSection.classList.add('active');
+
+                    const resultCard = document.createElement('div');
+                    resultCard.className = 'result-card';
+
+                    if (data.status === 'success' && data.data) {
+                        let detailsHtml = '';
+                        if (data.data.valid) {
+                            detailsHtml = `
+                                <span><strong>Valid:</strong> <span class="badge badge-success">Yes</span></span>
+                                <span><strong>Country:</strong> ${data.data.country || 'N/A'}</span>
+                                <span><strong>Carrier:</strong> ${data.data.carrier || 'N/A'}</span>
+                                <span><strong>Location:</strong> ${data.data.location || 'N/A'}</span>
+                                <span><strong>Line Type:</strong> ${data.data.line_type || 'N/A'}</span>
+                                <span><strong>International:</strong> ${data.data.international_format || 'N/A'}</span>
+                                <span><strong>Summary:</strong> ${data.data.summary || 'N/A'}</span>
+                            `;
+                        } else {
+                            detailsHtml = `
+                                <span><strong>Valid:</strong> <span class="badge badge-danger">No</span></span>
+                                <span><strong>Summary:</strong> ${data.data.summary || 'Invalid number'}</span>
+                            `;
+                        }
+                        resultCard.innerHTML = `
+                            <h4><i class="fas fa-phone-alt"></i> PHONE OSINT</h4>
+                            <div class="data-row">
+                                <span><strong>Input:</strong> ${value}</span>
+                                ${detailsHtml}
+                            </div>
+                        `;
+                    } else if (data.error) {
+                        resultCard.innerHTML = `
+                            <h4><i class="fas fa-exclamation-triangle"></i> Error</h4>
+                            <div class="data-row">
+                                <span><strong>Input:</strong> ${value}</span>
+                                <span><strong>Status:</strong> <span class="badge badge-warning">Error</span></span>
+                                <span><strong>Message:</strong> ${data.error}</span>
+                            </div>
+                        `;
+                    } else {
+                        resultCard.innerHTML = `
+                            <h4><i class="fas fa-exclamation-triangle"></i> Unknown</h4>
+                            <div class="data-row">
+                                <span><strong>Input:</strong> ${value}</span>
+                                <span><strong>Status:</strong> <span class="badge badge-warning">Unknown</span></span>
+                                <span><strong>Message:</strong> Could not process request.</span>
+                            </div>
+                        `;
+                    }
+
+                    resultsContainer.prepend(resultCard);
+                })
+                .catch(error => {
+                    loading.classList.remove('active');
+                    resultsSection.classList.add('active');
+
+                    const errorCard = document.createElement('div');
+                    errorCard.className = 'result-card';
+                    errorCard.innerHTML = `
+                        <h4><i class="fas fa-exclamation-triangle"></i> Connection Error</h4>
+                        <div class="data-row">
+                            <span><strong>Input:</strong> ${value}</span>
+                            <span><strong>Status:</strong> <span class="badge badge-danger">Error</span></span>
+                            <span><strong>Message:</strong> ${error.message}. Make sure the Flask backend is running.</span>
+                        </div>
+                    `;
+                    resultsContainer.prepend(errorCard);
+                });
+            });
+        });
+
+        // PDF GENERATION (Simulated)
+        document.getElementById('generatePdfBtn').addEventListener('click', function() {
+            alert('PDF Report Generated!\n\nThis will download a structured PDF with all results.');
+        });
+
+    })();
+</script>
+
+</body>
+</html>
